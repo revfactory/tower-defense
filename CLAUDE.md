@@ -16,3 +16,4 @@
 | 2026-07-06 | Pages 호환·모바일/터치·스프라이트 애니메이션 규약 추가 | skills/td-code-standards | GitHub Pages 배포 + 모바일 최적화 요구 |
 | 2026-07-06 | 라우팅 확장(배포/모바일/시트/맵 퀄리티) + 복합 업그레이드 절차 | skills/td-orchestrator | v2 업그레이드 지원 |
 | 2026-07-06 | 역할 보강 (시트 제작/아틀라스 로더·DPR/터치 UX/맵 비주얼) | agents/{asset-artist,engine-dev,ui-dev,map-designer} | v2 업그레이드 지원 |
+| 2026-07-06 | 재실행 시 에이전트 재사용 원칙 추가 (SendMessage 재개 우선, 이름 충돌 대응) | skills/td-orchestrator | v2 실행 중 -2 접미사 중복 스폰으로 태스크 중복 실행·라우팅 혼선 발생 |
