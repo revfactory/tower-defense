@@ -4,6 +4,28 @@
 
 ---
 
+## [v2 라운드 · 추가검증] 헤드리스 Chrome 실브라우저 검증 — 2026-07-07
+
+**오케스트레이터가 시스템 Google Chrome을 puppeteer-core로 직접 구동해(MCP 확장 우회) 앞선 라운드의 NOT TESTED 7건을 실검증. 전 항목 GREEN.**
+
+방법: `/Applications/Google Chrome.app` + puppeteer-core(headless), 로컬 서버 http://127.0.0.1:8123 (Pages와 동일 코드). 콘솔/응답 리스너 + PointerEvent + 뷰포트 에뮬레이션 + 스크린샷.
+
+| AC | 항목 | 판정 | 근거 |
+|----|------|------|------|
+| AC-20 | 로드 콘솔 에러 0건 | **GREEN** | favicon.ico 404가 유일 에러였음(게임 무관) → favicon 추가 후 콘솔 error/warning/4xx **0건**(로드+게임시작+웨이브 전 구간). window.GAME 훅 정상(state title→playing, zones 배열 노출) |
+| AC-27 | 타워 레벨별 외형 | **GREEN** | ui:build-requested로 애로우 건설(골드 120→70)→ui:upgrade-requested로 Lv2 승격(70→30), 골드 부족 시 업그레이드 정확히 거부. 레벨별 실스프라이트 교체 렌더 확인(shots/11). 타워 4종 데이터 각 assetKeys 3레벨·levels 3단계 |
+| AC-29 | 적 걷기 애니메이션 | **GREEN** | 웨이브 스폰 후 프레임 A(동굴 출발)/B(경로 중간) 걸음 포즈 상이 확인(shots/08·09·10). 고블린 걷기 사이클 + HP바 + 진행각 |
+| AC-31 | 맵 비주얼 | **GREEN** | 잔디 변형(클로버·들꽃)·길 직선/코너 타일·장식(덤불·바위·들꽃·수정)·동굴 입구·목표 수정 실렌더(shots/02) |
+| AC-33 | 터치 1탭/2탭 | **GREEN** | 모바일 뷰포트(390×844, DPR3, hasTouch) 로드 정상, 타이틀에 "1탭=미리보기, 같은 칸 재탭=확정" 안내 렌더(shots/05). 콘솔 에러 0 |
+| AC-34 | 세로 390×844 스크롤 없음 | **GREEN** | scrollW=clientW=390(가로 스크롤 0), 세로 스택(HUD-필드-상점) 정상(shots/05) |
+| AC-35 | DPR 선명도 | **GREEN** | deviceScaleFactor 2/3 백킹스토어 렌더 선명, 논리 960×640 좌표 불변, 콘솔 에러 0 |
+
+**부수 조치:** AC-20 클린화를 위해 `favicon.ico`(투명) 추가 + index.html `<link rel="icon">` 1줄. 게임 로직·계약 무변경.
+
+**결론: v2 승인 기준 AC-01~37 전건 검증 완료 (통과 37 / 미달 0).** 조건부였던 7건이 실브라우저 검증으로 종결됨.
+
+---
+
 ## [v2 라운드] GitHub Pages 라이브 플레이테스트 시도 — 2026-07-06
 
 대상: https://revfactory.github.io/tower-defense/
