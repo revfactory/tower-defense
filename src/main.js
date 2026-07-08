@@ -139,7 +139,8 @@ function initWinLoseDetection() {
     const total = waveTotal > 0 ? waveTotal : WAVES.length; // 데이터 우선, 캐시 부재 시 폴백
     if (total > 0 && p.index >= total) {
       state = 'victory';
-      emit('game:won', { kills: run.kills, livesLeft: getLives() });
+      // (v3.1) goldLeft = 잔여 골드(종합 점수 4번째 요소). livesLeft=getLives()와 동형 경로.
+      emit('game:won', { kills: run.kills, livesLeft: getLives(), goldLeft: getGold() });
     }
   });
 

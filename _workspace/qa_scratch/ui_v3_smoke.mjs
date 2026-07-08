@@ -202,10 +202,14 @@ ok(scoreValEl.textContent === String(expLive), `실시간 점수 가산 처치${
 
 // 승리 — main이 하는 판정을 흉내: game:won 발행 (score→progress→screens 순 캐스케이드)
 const life = 4 * SCORING.lifeBonusPerLife;
-const total = expLive + life; // total = kill+wave+life
-emit('game:won', { kills: 1, livesLeft: 4 });
+const goldPer = Number(SCORING.goldBonusPer) || 0; // (v3.1) 미기입 시 0
+const goldLeft = 30;
+const goldBonus = Math.floor(goldLeft * goldPer);
+const total = expLive + life + goldBonus; // (v3.1) total = kill+wave+life+gold
+emit('game:won', { kills: 1, livesLeft: 4, goldLeft });
 const vPanel = document.getElementById('victory-score');
-ok(new RegExp(String(total)).test(vPanel.innerHTML), `승리 점수 분해 total ${total} 렌더 (life 4×${SCORING.lifeBonusPerLife}=${life} 포함)`);
+ok(new RegExp(String(total)).test(vPanel.innerHTML), `승리 점수 분해 total ${total} 렌더 (life ${life}+gold ${goldBonus} 포함)`);
+ok(/남은 골드/.test(vPanel.innerHTML), '(v3.1) 남은 골드 분해 항목 렌더');
 ok(/신기록/.test(vPanel.innerHTML), '첫 클리어 신기록! 연출 표시');
 ok(document.getElementById('screen-victory').classList.contains('hidden') === false, '승리 화면 노출');
 
@@ -225,6 +229,7 @@ emit('enemy:killed', { enemy: { type: 'goblin' } }); // 5
 emit('game:over', { waveReached: 1, kills: 1 });
 const dPanel = document.getElementById('defeat-score');
 ok(/처치/.test(dPanel.innerHTML) && /패배 0/.test(dPanel.innerHTML), '패배 화면 점수 분해(라이프 0) 렌더');
+ok((dPanel.innerHTML.match(/패배 0/g) || []).length >= 2, '(v3.1) 패배 시 라이프·골드 둘 다 (패배 0) 표기');
 
 console.log(fail === 0 ? '\n✅ 전체 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

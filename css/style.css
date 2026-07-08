@@ -143,6 +143,11 @@ body {
   width: 100%;
   background: #0d0f14;
   touch-action: none; /* 게임 영역 — 스크롤/더블탭 줌 차단 (§11) */
+  /* 필드(960×640 캔버스) 아래 컨트롤 밴드 — 배치 취소 버튼 전용.
+     캔버스는 width:100%로 #stage 콘텐츠 폭을 꽉 채우므로 필드 위 어떤 절대배치도
+     타일 건설 클릭을 가로챈다. 밴드를 상시 확보(레이아웃 시프트 0)해 버튼을 필드 밖에
+     둔다. 밴드는 #stage 내부라 §7 "#stage 내" 계약 유지 — DOM 구조 불변, CSS만. */
+  padding-bottom: 56px;
 }
 
 #game-canvas {
@@ -154,10 +159,13 @@ body {
 
 .placing #game-canvas { cursor: crosshair; }
 
-/* 배치 취소 버튼 — 배치 모드 중에만 노출(.hidden 토글은 placement.js), 터치 필수 취소 수단 */
+/* 배치 취소 버튼 — 배치 모드 중에만 노출(.hidden 토글은 placement.js), 터치 필수 취소 수단.
+   필드(캔버스) 아래 컨트롤 밴드(#stage padding-bottom) 하단 중앙에 배치 — 필드 타일 위에
+   있지 않아 상단 중앙(col 6~8 등) 건설 클릭을 더 이상 가로채지 않는다. bottom:6px는 56px
+   밴드에서 44px 버튼을 수직 중앙(6px 여백)에 맞춘 값. */
 #btn-cancel-placement {
   position: absolute;
-  top: 10px;
+  bottom: 6px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 6;

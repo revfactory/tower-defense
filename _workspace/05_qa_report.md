@@ -765,3 +765,58 @@ team-lead·wave-balancer W3-8 실행 요청. **회차28 이후 waves.js(13:34)·
 - **AC-38~48 종합:** 헤드리스 원천 8건 + 실브라우저 6항목 = **전 11개 승인 기준 검증 완료.** v1 AC-01~22·v2 AC-23~37 회귀 무손상(§15 불변 경계 유지).
 
 **결론: v3(5스테이지 + 종합 점수 + 영속) 승인 기준 전건 GREEN. 회귀 감시 대기 해제.**
+
+---
+
+# ═══ v3.1 사이클 (계약 v3.1 — 잔여 골드 점수, 2026-07-08) ═══
+
+## [검증 회차 30] v3.1 골드 점수 (Task #12 계약·#15 engine·#14 wave-balancer) — 2026-07-08
+
+기준: 계약 v3.1 §3.1(game:won.goldLeft)·§3.10(score:finalized.gold)·§4.10(goldBonusPer)·§14.2(total=kill+wave+life+gold). **P2 1건(D30-1 — screens 골드 분해 미표시). engine·계약·데이터 측은 통과.**
+
+| # | 경계면 | 판정 | 확인 방법 |
+|---|---|---|---|
+| 30-1 | 계약 v3.1 반영 (architect #12) | 통과 | 02 문서 §3.1 goldLeft 선택필드·§3.10 gold 소계·§4.10 goldBonusPer·§14.2 total 공식·§240 economy 미import 재사용 노트·변경이력 v3.1 행 — 비파괴 확장(기존 필드 불변) 정합. **정식 계약 개정 확인**(무단 결합 아님) |
+| 30-2 | 문법 게이트 | 통과 | main.js·score.js `node --check` PASS |
+| 30-3 | **game:won.goldLeft 발행↔score 구독** (QA 배정) | 통과 | main.js:143 `emit('game:won', {kills, livesLeft, goldLeft: getGold()})` — getLives()와 동형 경로. score.js:81 `p.goldLeft` 수신. 기존 필드 kills·livesLeft 불변 |
+| 30-4 | **score gold 집계 + total** (§14.2) | 통과 | 실 버스 독립 검증: goldBonusPer=0.15, goldLeft 258→gold floor(258×0.15)=38, total=kill5+wave40+life300+gold38=383 정합. game:over→gold 0·life 0. goldLeft 미기입/비유한수→0 폴백. **score economy 미import 유지**(§1 원장-이벤트 원칙) |
+| 30-5 | goldBonusPer 데이터 + sim 요소 비중 (wave-balancer #14) | 통과 | scoring.js:54 goldBonusPer 0.15. **#14 완료 후 sim 재실행**: exit 0·3회 결정적. Part5 4요소 비중 — 골드 38=1.4%(§4.10 ≤10% 구속 PASS), 골드 극단 600골드=90 < 라이프 최대 600(소극방어 억제 PASS), "goldBonusPer 유한·≥0" 게이트 인코딩. §4.10 구속 전건 충족 |
+
+### 결함
+
+| # | 심각도 | 경계면 | 증상 | 재현/확인 | 담당 |
+|---|---|---|---|---|---|
+| D30-1 | P2 | 계약 §3.10⑤ ↔ ui/screens | **결과 화면 점수 분해에 골드 항목 누락 (AC-46 위반).** renderScorePanel(screens.js:104~110)이 처치/웨이브/라이프 3항목만 `<li>` 렌더 — v3.1 gold 소계 `<li>` 부재. goldBonusPer=0.15 활성으로 gold>0이므로 **분해 항목 합(345)이 표시 total(383)과 불일치** — 사용자가 38점 차이를 목격. 계약 변경이력 v3.1 ⑤ "ui/screens.js=결과 화면 골드 항목 표시(ui-dev)" 미이행. 부수: total 폴백 `|| kill+wave+life`도 gold 누락(f.total 상시 존재로 실질 무해하나 방어 일관성 결함) | screens.js:104-110 `<li>` 3개(gold 없음) ↔ score:finalized.gold=38 발행. renderScorePanel 코드 확인 | ui-dev |
+
+**engine-dev #15·architect #12·wave-balancer #14 통과.** v3.1 유일 잔여: **D30-1(P2, ui-dev screens 골드 분해).** 해소 후 v3.1 통합 스모크(sim exit 0 + finalized.gold↔screens 소비 + 분해 합=total) 실행.
+
+### 회차 30 후속 (wave/engine 완료 통지 배치 수신)
+
+- **wave-balancer #14 sim 48/48 재확인**: `node scripts/sim.mjs` exit 0, **48항목**(기존 45 + 골드 3건: goldBonusPer 유한·≥0 / 골드 극단 600골드=90<라이프600 / 골드 비중 1.4%≤10%). 골드 배점 게이트 인코딩 확인.
+- **engine-dev v3.3 통합 스모크 69/69**(자체 보고) — score:finalized 7필드·5스테이지 순차 해금·재도전·패배(gold 0)·순서 불변식. engine 소유 경계면은 회차21+회차30-4로 QA 독립 확정.
+- **D30-1 미해소 재확인**: screens.js mtime 13:02(D30-1 리포트 시점 이후 변경 0) — 골드 `<li>` 여전히 부재. **다수 "완료" 통지가 오갔으나 D30-1은 담당 태스크가 없어 미착수 상태.** 현행 goldBonusPer=0.15에서 분해 합↔total 차이 goldLeft에 비례(예 goldLeft 520 → 78점 차이). ui-dev 2차 통지 + team-lead 코디네이션 통지(태스크 부재).
+
+**v3.1 QA 게이트: D30-1 단일 블로커. 나머지(계약·score·main·scoring·sim) 전건 그린.**
+
+---
+
+## [검증 회차 31] D30-1 종결 + Task #13 취소버튼 + v3.1 통합 게이트 — 2026-07-08
+
+기준: 계약 v3.1, GDD AC-46·AC-33/34(취소 수단). **결함 0건. D30-1(P2) 종결. v3.1 통합 게이트 exit 0.** ui-dev-2가 D30-1을 Task #16으로 등록·수정(코디네이션 통지 반영), Task #13(취소 버튼) CSS-only 수정 착지.
+
+| # | 경계면 | 판정 | 확인 방법 |
+|---|---|---|---|
+| 31-1 | **D30-1 종결** (Task #16, AC-46·계약 v3.1 ⑤) | 통과 | screens.js:96 gold 파싱, :109/29 골드 `<li>` 추가(life와 동형·패배 0 표기), :97 total 폴백 `+gold` 포함(방어 일관성 결함도 수정). **분해 합=total 종결 검증**: 실 버스 goldLeft 520→분해 4항목 10+40+300+78=428 == finalized.total 428(이전 350≠428 → 해소). UI 하네스 재실행 회귀 0 |
+| 31-2 | Task #13 취소 버튼 클릭 가로채기 (AC-33/34) | 통과 | css/style.css만 변경(#stage padding-bottom:56px 상시 밴드 + 버튼 top:10px→bottom:6px). index.html DOM 불변(§7 "#stage 내" 유지, btn-cancel-placement 33행), 중괄호 147/147 밸런스, placement/shop 이벤트 배선 무변경. **실배치 클릭 통과는 브라우저 국면(playtester)** — CSS 레이아웃 판정은 육안 소관, QA는 계약·구조·게이트만 |
+| 31-3 | v3.1 통합 게이트 (`qa-v3-gate.sh`) | 통과 | exit 0 — 문법 36파일·헤드리스 8하네스·sim 48/48·이벤트 고아 0·상대경로 0. Task #13 CSS는 런타임 로직 무관(sim/이벤트 불변) |
+| 31-4 | sim 48/48 회귀 (Task #13·#16 후) | 통과 | `node scripts/sim.mjs` exit 0, 48항목(골드 3게이트 포함) — screens/css 변경이 밸런스·데이터 무영향 |
+
+### v3.1 QA 최종 집계 (회차 30~31)
+
+| 심각도 | 건수 | 상태 |
+|---|---|---|
+| P0 / P1 | 0 | — |
+| P2 | 1 (D30-1) | **종결** (Task #16 — 분해 합=total 정합) |
+| P3 | 0 | — |
+
+**v3.1 미결 0건.** architect #12·engine #15·wave #14·ui #16(D30-1)·ui #13(취소버튼) 전건 통과. 골드 4요소 점수(kill+wave+life+gold) 계약↔score↔screens 경계면 정합, sim 48/48 결정적, §15/AC-41 회귀 무손상. **v3.1 헤드리스 QA 종결.** 잔여 브라우저 국면(취소버튼 실클릭 통과 AC-33/34·골드 항목 실렌더)은 playtester 이관.

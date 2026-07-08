@@ -8,7 +8,7 @@
  *
  * 구독: game:started {} — 전 화면 숨김 + 점수 캐시 리셋
  *      game:won {kills, livesLeft} / game:over {waveReached, kills} — 결과 화면 표시
- *      score:finalized {stageIndex, outcome, kill, wave, life, total} — 점수 분해 캐시(§14.2)
+ *      score:finalized {stageIndex, outcome, kill, wave, life, gold, total} — 점수 분해 캐시(§14.2, v3.1 gold 추가)
  *      stage:record-updated {stageIndex, best, isNewBest}            — 최고기록/신기록 캐시(§14.3)
  *      stage:started {stageIndex} — 현재 스테이지 인덱스 캐시(다음 스테이지 버튼 근거)
  * 발행: ui:start-requested {} (#btn-start → 스테이지 선택)
@@ -93,7 +93,8 @@ function renderScorePanel(panelEl, outcome) {
   const kill = Math.max(0, Math.floor(Number(f.kill) || 0));
   const wave = Math.max(0, Math.floor(Number(f.wave) || 0));
   const life = Math.max(0, Math.floor(Number(f.life) || 0));
-  const total = Math.max(0, Math.floor(Number(f.total) || kill + wave + life));
+  const gold = Math.max(0, Math.floor(Number(f.gold) || 0)); // (v3.1) 남은 골드 보너스 — life와 동일 방어
+  const total = Math.max(0, Math.floor(Number(f.total) || kill + wave + life + gold));
 
   const best = rec && Number.isFinite(Number(rec.best)) ? Math.max(0, Math.floor(Number(rec.best))) : total;
   const isNewBest = !!(rec && rec.isNewBest);
@@ -105,6 +106,7 @@ function renderScorePanel(panelEl, outcome) {
     `<li><span>처치</span><b>${fmtScore(kill)}</b></li>` +
     `<li><span>웨이브 클리어</span><b>${fmtScore(wave)}</b></li>` +
     `<li><span>남은 라이프${outcome === 'over' ? ' (패배 0)' : ''}</span><b>${fmtScore(life)}</b></li>` +
+    `<li><span>남은 골드${outcome === 'over' ? ' (패배 0)' : ''}</span><b>${fmtScore(gold)}</b></li>` +
     `</ul>` +
     `<div class="score-best">이 스테이지 최고기록 <b>${fmtScore(best)}</b></div>` +
     (isNewBest ? `<div class="new-record">🏆 신기록!</div>` : '');

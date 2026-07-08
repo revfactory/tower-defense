@@ -2,19 +2,23 @@
  * @module systems/score (engine-dev) — v3
  * 종합 점수 집계 원장. 계약 §4.10·§14.2. economy와 동형 — 쓰기는 이벤트 구독으로만.
  *
- * 점수 = 처치 점수 + 웨이브 클리어 보너스 + 남은 라이프 보너스 (GDD §13.2 D18).
+ * 점수 = 처치 점수 + 웨이브 클리어 보너스 + 남은 라이프 보너스 + 남은 골드 보너스 (GDD §13.2 D18, v3.1).
  *   · 처치/웨이브 점수는 판 진행 중 실시간 가산 (score:changed)
- *   · 라이프 보너스는 종료 시 확정 (score:finalized) — game:won의 livesLeft × 계수, 패배는 0
+ *   · 라이프·골드 보너스는 종료 시 확정 (score:finalized) — game:won의 livesLeft/goldLeft × 계수, 패배는 0
  * 판매·업그레이드 이벤트는 구독하지 않는다(점수 무영향 — GDD §13.2). 배속 페널티 없음.
  *
  * 구독: stage:started {stageIndex} — 현재 스테이지 인덱스 캐시 (finalized 페이로드용)
  *      game:started {}            — kill/wave 소계·누적 0 리셋
  *      enemy:killed {enemy}       — killPoints[enemy.type] 가산 → score:changed(source:'kill')
  *      wave:cleared {index}       — 웨이브 점수 가산 → score:changed(source:'wave')
- *      game:won {livesLeft}       — life = livesLeft × lifeBonusPerLife → score:finalized(outcome:'won')
- *      game:over {}               — life = 0 → score:finalized(outcome:'over')
+ *      game:won {livesLeft, goldLeft} — life = livesLeft × lifeBonusPerLife, gold = goldLeft × goldBonusPer
+ *                                        → score:finalized(outcome:'won')
+ *      game:over {}               — life = 0, gold = 0 → score:finalized(outcome:'over')
  * 발행: score:changed {score, delta, source} — 매 가산마다 (source: 'kill'|'wave')
- *      score:finalized {stageIndex, outcome, kill, wave, life, total} — 판당 정확히 1회
+ *      score:finalized {stageIndex, outcome, kill, wave, life, gold, total} — 판당 정확히 1회
+ *
+ * (v3.1) 잔여 골드는 game:won의 goldLeft 페이로드로만 수신 — score는 economy를 import하지 않는다(§1 원장-이벤트 원칙).
+ *   SCORING.goldBonusPer만 추가로 읽음. 진행 중 score:changed에는 골드 무반영(종료 시 확정 요소).
  *
  * 읽기 API 없음(economy 패턴 — ui는 이벤트로만 소비). getScore()는 window.GAME.score 노출용(main 소관).
  */
@@ -69,15 +73,18 @@ export function initScore() {
     emit('score:changed', { score: kill + wave, delta: pts, source: 'wave' });
   });
 
-  // 종료 확정 — 라이프 보너스 합산 후 score:finalized 1회(§14.2).
+  // 종료 확정 — 라이프·골드 보너스 합산 후 score:finalized 1회(§14.2).
+  // (v3.1) 잔여 골드는 game:won의 goldLeft 페이로드로만 수신 — score는 economy를 import하지 않는다(§1).
   on('game:won', (p) => {
     const livesLeft = Number(p && p.livesLeft);
     const life = (Number.isFinite(livesLeft) ? Math.max(0, livesLeft) : 0) * lifeBonusPerLife();
-    finalize('won', life);
+    const goldLeft = Number(p && p.goldLeft);
+    const gold = (Number.isFinite(goldLeft) ? Math.max(0, goldLeft) : 0) * goldBonusPer();
+    finalize('won', life, Math.floor(gold));
   });
 
   on('game:over', () => {
-    finalize('over', 0); // 패배: 라이프 보너스 0(§4.10)
+    finalize('over', 0, 0); // 패배: 라이프·골드 보너스 0(§4.10)
   });
 }
 
@@ -116,13 +123,20 @@ function lifeBonusPerLife() {
   return Number.isFinite(v) ? Math.max(0, v) : 0;
 }
 
+/** @returns {number} goldBonusPer 계수 (v3.1 — 미기입/비유한수 시 0 → 골드 보너스 무효). */
+function goldBonusPer() {
+  const v = Number(SCORING && SCORING.goldBonusPer);
+  return Number.isFinite(v) ? Math.max(0, v) : 0;
+}
+
 /**
  * 최종 점수 확정 + score:finalized 발행(판당 1회 — main의 game:won/over가 1회 보장).
  * @param {'won'|'over'} outcome @param {number} life 라이프 보너스 소계
+ * @param {number} gold 잔여 골드 보너스 소계 (v3.1) — 패배는 0
  */
-function finalize(outcome, life) {
-  const total = kill + wave + life;
-  emit('score:finalized', { stageIndex, outcome, kill, wave, life, total });
+function finalize(outcome, life, gold) {
+  const total = kill + wave + life + gold;
+  emit('score:finalized', { stageIndex, outcome, kill, wave, life, gold, total });
 }
 
 /** @returns {number} 현재 누적 점수 (kill + wave 소계) — window.GAME.score 경유 노출용 */
