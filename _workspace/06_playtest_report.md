@@ -95,3 +95,22 @@
 6. 주요 구간 스크린샷·GIF, 세션 전체 콘솔 로그 요약
 
 ---
+
+---
+
+## [v3 라운드] 헤드리스 Chrome 실브라우저 검증 — 2026-07-08
+
+오케스트레이터가 시스템 Chrome(puppeteer-core headless)으로 v3 실브라우저 국면을 직접 검증. QA 이관 5건 전부 GREEN.
+
+| AC | 항목 | 판정 | 근거 |
+|----|------|------|------|
+| AC-20 | 부팅/플레이 콘솔 에러 0건 | **GREEN** | 부팅·스테이지선택·진입·전투 전 구간 console error/warning/4xx 0건 |
+| AC-43 | 상태머신 실도달 (stage-select) | **GREEN** | 타이틀→'stage-select' 전이 확인, 스테이지 선택 화면 5카드 실렌더(v3_02): 미니맵·입구/도착 마커·해금1/잠금4·자물쇠 안내·경로 기하 차이·HUD 점수 |
+| AC-40/47 | 재접속 영속 (localStorage 왕복) | **GREEN** | 저장값 주입→새로고침→window.GAME.progress={unlockedCount:3,bestScores:[2409,1500,800,0,0]} 정확 반영. 진입 시 stageIndex/gold120/lives20 정상 |
+| AC-48 | 저장 손상/삭제 크래시 없음 | **GREEN** | localStorage 삭제→새로고침→pageerror 0, 폴백 {unlockedCount:1,bestScores:[0×5]} 정규화 |
+| AC-34 | 모바일 세로 390×844 | **GREEN** | scrollW=clientW=390(가로 스크롤 0), 스테이지 선택 세로 대응(v3_04) |
+| 점수 | HUD 실시간·집계 | **GREEN** | 타워 건설→킬→score:5, #hud-score "점수5" 표시. 무피해 이론 최고점 2679 집계식 일치(QA 회차25) |
+
+스크린샷: v3_01_title, v3_02_stageselect, v3_03_ingame_score, v3_04_mobile_stageselect.
+
+**결론: v3 승인 기준 AC-38~48 전건 검증 완료.** QA 헤드리스(회차 20~29 미결 0) + 실브라우저(위 6항목) 종합 GREEN.
