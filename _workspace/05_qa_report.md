@@ -820,3 +820,22 @@ team-lead·wave-balancer W3-8 실행 요청. **회차28 이후 waves.js(13:34)·
 | P3 | 0 | — |
 
 **v3.1 미결 0건.** architect #12·engine #15·wave #14·ui #16(D30-1)·ui #13(취소버튼) 전건 통과. 골드 4요소 점수(kill+wave+life+gold) 계약↔score↔screens 경계면 정합, sim 48/48 결정적, §15/AC-41 회귀 무손상. **v3.1 헤드리스 QA 종결.** 잔여 브라우저 국면(취소버튼 실클릭 통과 AC-33/34·골드 항목 실렌더)은 playtester 이관.
+
+---
+
+## [검증 회차 32] 웨이브 점수 모델 불일치 (Task #16 확정 교차검증 중 발견) — 2026-07-08
+
+ui-dev-2 Task #16 완료 통지의 "이론 최고점 2717" 수치를 score.js 실구동과 대조하던 중 **sim.mjs 점수 모델과 실 엔진(score.js)의 웨이브 점수 계산 방식 불일치** 발견. **P3 1건(D32-1). D30-1 정합성은 재확인 통과.**
+
+| # | 항목 | 판정 | 확인 방법 |
+|---|---|---|---|
+| 32-1 | D30-1 분해 합=total 재확인 (ui-dev vs ui-dev-2 충돌 없음) | 통과 | screens.js:96/97/109 골드 파싱·total 폴백·`<li>` 단일 반영(중복/충돌 0). 무피해 완주 실구동: kill 1463+wave 612+life 600+gold 38=**2713=total**, 분해 합===total. D30-1 종결 유효 |
+| 32-2 | **sim.mjs ↔ score.js 웨이브 점수 계산 방식** | **P3 D32-1** | 아래 결함 |
+
+### 결함
+
+| # | 심각도 | 경계면 | 증상 | 재현/확인 | 담당 |
+|---|---|---|---|---|---|
+| D32-1 | P3 | sim.mjs 점수 모델 ↔ systems/score.js | **웨이브 점수 floor 위치 불일치.** score.js:117 `Math.floor(base×(1+(n-1)(scale-1)))` = **웨이브별 floor 후 합**(waveScale 1.12 → wave 소계 **612**). sim.mjs:571 `Math.round(...)` = **웨이브별 round 후 합**(→ **616**). 결과: sim/ui-dev-2 문서상 이론 최고점 **2717**, 실 엔진 score.js는 **2713** (4점 괴리). **게이트 미실패**(골드 비중 38/2713=1.4%·38/2717=1.4% 둘 다 ≪10%, sim 48/48 유지) — 그러나 sim의 "이론 최고점" 표시·Part5 요소 비중 분모가 실 엔진과 다름. waveScale 상향 튜닝 시 괴리 확대 잠재 위험 | `node -e` score.js 웨이브별 floor 합=612 vs sim.mjs:571 round 합=616. 실 버스 finalized.total=2713 ≠ sim 2717 | wave-balancer (sim.mjs:571 `Math.round`→`Math.floor`로 score.js §4.10 공식과 일치) |
+
+**D32-1은 표시/모델 정확도 결함(P3) — 실 게임 점수(score.js)는 계약 §4.10 `Math.floor` 공식대로 정확.** screens 표시도 score.js 값(2713)을 그대로 쓰므로 **플레이어가 보는 점수는 정합**. 어긋나는 건 sim.mjs의 튜닝용 이론 최고점 표시값뿐. v3.1 종결에는 영향 없음(게이트 그린 유지) — wave-balancer 수정 시 sim 문서값이 실 엔진과 완전 일치.
