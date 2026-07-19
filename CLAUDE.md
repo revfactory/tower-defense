@@ -35,3 +35,4 @@
 | 2026-07-19 | §7.5 세그먼트 하모나이즈 승격 (harmonize_segmented·tile_seam_check 번들, 2재질 타일 whole-tile 판정 금지) | skills/td-asset-pipeline | v5 실증: 2재질 타일에 whole-tile 매칭 시 지표는 PASS인데 잔디 오염 (거짓 합격 함정) |
 | 2026-07-19 | "레이어 번호는 계약 화이트리스트 전용, 미승인 번호 유통 금지" 규칙 추가 | skills/td-code-standards | v5 실증: 미승인 레이어 18 권장 → 15→18→15 왕복, 5개 에이전트 정정 파급 |
 | 2026-07-19 | §7.5 필드 타일 분포 지표 승격 (grass_lab.py 번들 — Lab ΔE·해시배치 몽타주·tint 시뮬, JND 기준) | skills/td-asset-pipeline | v5 실증: 평균색 ΔE 2.5 타일이 밝기 분포 차로 필드에서 튐 (평균 지표 사각) |
+| 2026-07-19 | §7 "오버레이 타일 여백은 투명(alpha_cut_path.py 번들)·edge는 컷 금지·저품질 코너 형제 플립 파생" 규칙 추가 | skills/td-asset-pipeline | v5.2 실증: 길 타일 구운 잔디 여백이 스티커 halo의 근본 원인 (사용자 스크린샷 리포트) |

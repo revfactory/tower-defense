@@ -1446,3 +1446,20 @@ QA는 **두 무모순 상태를 모두 GREEN으로 실증**했다: 레이어 18(
 **회차 56 = GREEN.** P2 근본 수정 확인(밝기·채도 분포 매칭 → 필드 패치워크 소멸, ΔE JND 미만, 전이 타일 무영향). 평균색 지표의 사각을 whole-tile 분포로 보완한 정확한 진단.
 
 **[회차 56-보강] 실렌더 기준 독립 재확인(asset-artist 렌더 경로 재현) — GREEN.** grass_lab.py(해시배치 시뮬)보다 권위 있는 **실 게임 렌더 경로**로 재검증: `render_check.mjs`가 9222 헤드리스 Chrome(진짜 TD 서버 8234, `<title>크리스탈 가드</title>` 확인)에서 `tilemap.buildBackground`로 5레벨 배경을 실렌더(각 스테이지 tint 실적용: stage2 #d9a441 a0.12 ~ stage5 #5a1d3a a0.32) → `render_measure.py`가 순수 잔디 셀(green_frac≥0.90) per-tile Lab ΔE 계측(playtester 방법론 재현). **결과: 전 5스테이지 PASS — maxΔE stage1 6.6/stage2 6.3/stage3 4.7/stage4 2.5/stage5 1.9(전부 임계18 미만), 초과(>18) 0/잔디셀 전건, p95ΔE ~1.0(JND 미만).** stage2 실렌더 육안(03_render_stage2.png): 잔디 톤 균일·밝기 패치워크 소멸(clover/flower 안 튐). 내 실측 stage1 6.6 ≈ asset-artist 6.8·playtester 6.8(방법론 일치). 코드 변경 0, 키·경로·규격 불변. **P2 렌더 기준 최종 GREEN.**
+
+## [검증 회차 57] 길 타일 스티커 제거(#13, asset-artist) — 알파컷 여백 + se/sw 파생 — 2026-07-19
+
+**개선(회차 56-보강 관찰 후속):** 길 타일 잔디 여백이 불투명 갈색이라 필드에 사각 브라운 얼룩(스티커)처럼 얹힘. 수정: 길 6종 여백을 **알파 투명으로 도려냄** → tilemap이 모든 셀에 잔디 바닥을 먼저 그리므로 여백 투명이면 실제 필드 잔디가 비침(이음새 ΔE≈0, 설계 의도). se·sw는 저품질 원본이라 형제 수직플립 파생.
+
+| # | 항목 | 결과 | 확인 방법 |
+|---|---|---|---|
+| 1 | 규격 256² RGBA·알파컷 | **PASS** | 길 6종 256² RGBA(알파 추가). 투명(α<16): h 41%·v 44%·코너 4종 61%. 반투명 13~18%(경로 안티에일리어싱 엣지 포함) |
+| 2 | se/sw 파생 정확 | **PASS** | PIL 비교: `tile_path_se` == vflip(`tile_path_ne`) **100.0% 일치(diff 0.00)**, `tile_path_sw` == vflip(`tile_path_nw`) **100.0%(diff 0.00)**. 저품질 원본을 좋은 코너 수직플립으로 대체(NE→SE·NW→SW 기하 정합) |
+| 3 | 실렌더 알파컷 반영 | **PASS** | `render_check_freshtab.mjs`(캐시무효 새 탭, 진짜 TD 8901): tile_path_h 투명 42% 프로브 → 새 알파컷 타일 로드 확인(stale 0% 아님). 5레벨 buildBackground 실렌더 |
+| 4 | 스티커 제거(육안) | **PASS** | 실렌더 육안: 전 스테이지·전 코너에 **사각 브라운 얼룩 0** — 경로가 잔디 위 도로처럼 읽힘. stage4 U턴(파생 se/sw 하단 코너)이 원본 상단 코너와 구별 없이 연속, stage1 정션 클린 |
+| 5 | 회귀(순수잔디 ΔE) | **PASS** | `render_measure.py`: 전 5스테이지 maxΔE 6.6/6.3/4.7/2.5/1.9·초과(>18) 0 — 회차 56과 동일, 알파컷이 잔디 셀 지표 무영향 |
+| 6 | 키·경로·매니페스트·엔진 불변 | **PASS** | git status: 길 6종 PNG만 변경. manifest.js·src/ 변경 0. 백업 pre_alphacut/·pre_derive/ 6종 보존 |
+
+**회차 57 = GREEN.** 브라운 스티커(회차 56-보강 관찰) 근본 해소 — 여백 투명화로 필드 잔디 비침, se/sw 파생 정합, 회귀 0.
+
+**관찰(P3-잔여, 블로커 아님):** 코너 타일 주변에 매우 옅은 초록 haze 사각 윤곽이 근접 시 미세하게 보임(asset-artist 공개 잔여 반투명 ~4-5%). 브라운 스티커 대비 현저히 경미하며, 후속 #14(전이 타일 water_edge·dirt_edge 동일 알파컷)와 함께 다뤄질 여지. 현 상태로도 스티커 defect는 해소.

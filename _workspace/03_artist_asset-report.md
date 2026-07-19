@@ -310,6 +310,31 @@ frame edge to edge, straight top-down orthographic view, ..., not flat, not cel-
 - **방법론 검증:** 렌더 계측 stage1 = 6.8로 playtester 실측 6.8과 정확히 일치 → 순수잔디 필터가 동일 대상 격리 확인. stage2~5가 stage1급(≤6.8)으로 수렴 = 패치워크 소멸.
 - 육안(렌더 PNG): 전 스테이지 밝은 변형 블록 소멸, tint별 색조만 균질 적용. 도구 `_workspace/tools/{render_check.mjs,render_measure.py}`.
 
+## v5.2 길 타일 잔디 여백 "스티커" 제거 (알파 도려내기 + 코너 파생)
+
+**요구(P2, 사용자 스크린샷):** 길 타일(직선·코너)의 구워진 잔디 여백·그림자가 주변 잔디보다 어두워 사각 얼룩(스티커)으로 드러남. v5 세그먼트 하모나이즈는 여백 색을 맞췄지만 이음새 무감지(JND~2.3)엔 부족(최악 se 16.2).
+
+**근본 해법 — 알파 도려내기(코드가 요구하는 설계):** `tilemap.buildBackground`는 **모든 셀에 변형 잔디 바닥을 먼저 그리고**(src/map/tilemap.js:262-263, 주석 "길 코너 PNG의 투명 영역 밑에 비친다") 길 PNG를 위에 얹는다(:284-285). 즉 길 타일의 잔디 여백은 **투명이어야** 실제 잔디 필드(같은 harmonized `grassTileKey`)가 비쳐 이음새가 원리상 사라진다 — 여백을 재하모나이즈(옵션 B)로 쫓는 것보다 우월. 구운 여백은 설계 위반이었다.
+
+**구현:** 길 방향타일 6종의 잔디 픽셀을 알파 투명으로 도려냄. per-pixel grass 멤버십(g-r) → **가우시안 블러(반경5)로 영역화**(잎 highlight/shadow 노이즈 평균 — per-pixel 임계는 올리브 잔디에서 speckle) → `alpha *= (1 - blurred_mask^0.85)`. 도로는 불투명 유지, 경계는 페더(자연스러운 도로→잔디 전이). 도구 `_workspace/tools/alpha_cut_path.py` (`--lo -2 --hi 5 --blur 5 --gamma 0.85`). 원본 백업 `assets/reference/pre_alphacut/`(6). 순수 브라운 폴백 `tile_path`는 잔디 없어 대상 아님(불변).
+
+**코너 파생(se·sw 결함 교정):** se는 22% 초록(78% 브라운 apron)·sw는 haze 14.7%로 색기반 컷이 무력(형제 ne 68%·nw 71% 대비 저품질·비일관). 형제에서 기하 파생 —
+- `tile_path_se = flip(tile_path_ne)` 수직(north+east → south+east)
+- `tile_path_sw = flip(tile_path_nw)` 수직(north+west → south+west)
+
+이미 알파컷된 ne·nw를 뒤집어 **깨끗한 컷 se·sw를 직접 획득**. 조명 방향이 뒤집히나 컷 후 남는 건 도로뿐이라 지향 셰이딩 무시 가능(렌더 5스테이지 육안 형제와 구분 불가). 백업 `assets/reference/pre_derive/`(머디 se·헤이지 sw 알파컷본). 도로 엣지 연결·타일링 렌더에서 무결(gap 0).
+
+**잔여 haze 계측(반불투명 α>40 & 초록 g≥r 비율, 클린≈4-5%):** h 5.1 / v 4.7 / ne 4.0 / nw 4.4 / **se 4.0(파생)** / **sw 4.4(파생)** — 전 타일 균질(파생 전 se·sw는 각 별도 값이었으나 파생 후 형제와 동일).
+
+**렌더 기준 검증(9222 새 탭·캐시무효):** 내 게임 8901 서브 → 새 CDP 탭(cache-disabled)로 부팅·새 타일 로드 확인(tile_path_h 투명 42%) → `buildBackground` 5레벨 렌더. 육안(`03_render_stage{1-5}.png` + 줌 `z2_junction`): **전 스테이지·전 코너 사각 얼룩 소멸**, 직선/코너 도로가 균질 잔디 위에 깔림, se·sw 정션 클린. 순수잔디 ΔE 회귀 없음(stage1~5 maxΔE ≤6.6, 0% 초과 — v5.1 유지). **여백 ΔE는 이제 실제 필드 잔디(투명 여백으로 비침)라 구조적으로 ≈0(JND 미만).**
+
+**before/after 비교 이미지(팀리드 완료 기준):** pre_alphacut(구운 여백) 타일을 새 탭·캐시무효로 재렌더해 현재(알파컷)와 나란히 비교 — `_workspace/03_stickerfix_{stage1,stage4,junction}_compare.png`. before는 길 셀마다 어두운 사각 halo(특히 se 정션 머디 스퀘어), after는 균질 잔디 위 클린 도로. 재현: pre_alphacut 6종을 map에 복사 → render_check_freshtab.mjs로 before 렌더 → after 타일 복원.
+
+- 규격: 6 길타일 256² 유지, 알파 [0,255](도려내기=P2 옵션 A 승인 사항). 키·경로·매니페스트 불변, 엔진 코드 변경 0(로더가 투명 위에 잔디 바닥 이미 그림). 폴백 tile_path RGB 불변.
+- 재현: `python3 -m http.server 8901`(프로젝트 루트) → `node _workspace/tools/render_check_freshtab.mjs`(9222 새 탭·캐시무효 렌더) → `python3 _workspace/tools/render_measure.py`.
+- 참고(범위 밖): 전이 tile_{water,dirt}_edge도 동일 메커니즘(잔디 바닥 위)이라 같은 알파 도려내기가 적용 가능하나 이번 태스크(길 타일)엔 미포함 — 필요 시 후속.
+
 | 회차 | 일시 | 내용 |
 |---|---|---|
 | 5 (v5.1) | 2026-07-19 | 잔디 변형 clover/flower whole-tile 분포 하모나이즈 — 필드 패치워크 제거(ΔE 6.8→1.0, 2.5→0.5). 평균색 지표가 놓친 밝기 캐릭터 편차가 원인, tint·deco outlier는 무관. 키·규격 불변. |
+| 6 (v5.2) | 2026-07-19 | 길 타일 잔디 여백 알파 도려내기(6종) — 스티커 제거, 여백=실제 잔디 필드 비침(ΔE≈0). se·sw는 형제 ne·nw 수직플립 파생(저품질 원본 교정). 렌더 5스테이지 코너 클린 검증. 알파 추가 외 키·경로·규격·코드 불변. |
