@@ -1444,3 +1444,5 @@ QA는 **두 무모순 상태를 모두 GREEN으로 실증**했다: 레이어 18(
 **관찰(P3, #11 회귀 아님) — 종결(현상 유지):** 잔디 3종 RGB(RGBA 아님). **HEAD 커밋본·미변경 앵커 tile_grass도 RGB** → #11이 alpha 드롭한 게 아니라 잔디 패밀리 v4 기존 포맷. edge 타일(RGBA)과 혼재하나 지형은 불투명·로더가 RGB/RGBA 모두 처리라 렌더 무해. **team-lead 판단(2026-07-19): 선재·무해·의도적 방치 — RGBA 통일 작업 안 함.** #11 포맷 회귀 없음.
 
 **회차 56 = GREEN.** P2 근본 수정 확인(밝기·채도 분포 매칭 → 필드 패치워크 소멸, ΔE JND 미만, 전이 타일 무영향). 평균색 지표의 사각을 whole-tile 분포로 보완한 정확한 진단.
+
+**[회차 56-보강] 실렌더 기준 독립 재확인(asset-artist 렌더 경로 재현) — GREEN.** grass_lab.py(해시배치 시뮬)보다 권위 있는 **실 게임 렌더 경로**로 재검증: `render_check.mjs`가 9222 헤드리스 Chrome(진짜 TD 서버 8234, `<title>크리스탈 가드</title>` 확인)에서 `tilemap.buildBackground`로 5레벨 배경을 실렌더(각 스테이지 tint 실적용: stage2 #d9a441 a0.12 ~ stage5 #5a1d3a a0.32) → `render_measure.py`가 순수 잔디 셀(green_frac≥0.90) per-tile Lab ΔE 계측(playtester 방법론 재현). **결과: 전 5스테이지 PASS — maxΔE stage1 6.6/stage2 6.3/stage3 4.7/stage4 2.5/stage5 1.9(전부 임계18 미만), 초과(>18) 0/잔디셀 전건, p95ΔE ~1.0(JND 미만).** stage2 실렌더 육안(03_render_stage2.png): 잔디 톤 균일·밝기 패치워크 소멸(clover/flower 안 튐). 내 실측 stage1 6.6 ≈ asset-artist 6.8·playtester 6.8(방법론 일치). 코드 변경 0, 키·경로·규격 불변. **P2 렌더 기준 최종 GREEN.**
